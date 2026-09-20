@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clickjacking Test — Security Training</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #12181f; --border: #232b34;
+    --text: #c9d1d9; --muted: #7d8590;
+    --danger: #ff6b6b; --good: #56d364;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 1.5rem;
+  }
+  h1 { font-size: 1.4rem; margin: 0 0 0.3rem; }
+  p.sub { color: var(--muted); margin: 0 0 1.5rem; max-width: 700px; }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .col h2 {
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.danger { background: var(--danger); }
+  .dot.good { background: var(--good); }
+  .frame-wrap {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+  }
+  iframe {
+    width: 100%;
+    height: 520px;
+    border: none;
+    display: block;
+  }
+  a.back { color: #6ea8ff; text-decoration: none; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+  <a class="back" href="index.html">← Back to demo index</a>
+  <h1 style="margin-top:1rem;">Clickjacking test — both pages loaded in an iframe</h1>
+  <p class="sub">
+    Both demo pages are embedded below inside an <code>&lt;iframe&gt;</code>,
+    exactly like an attacker's page would embed them. The vulnerable page
+    loads normally — an attacker could overlay invisible buttons on top of
+    it to trick clicks. The patched page detects that it's framed and
+    blocks its own content instead.
+  </p>
+  <div class="grid">
+    <div class="col">
+      <h2><span class="dot danger"></span> Vulnerable — loads normally</h2>
+      <div class="frame-wrap"><iframe src="vulnerable.html" title="vulnerable page in frame"></iframe></div>
+    </div>
+    <div class="col">
+      <h2><span class="dot good"></span> Patched — refuses to render</h2>
+      <div class="frame-wrap"><iframe src="patched.html" title="patched page in frame"></iframe></div>
+    </div>
+  </div>
+</body>
+</html>

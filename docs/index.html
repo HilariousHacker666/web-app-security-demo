@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web App Security Demo</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #12181f; --border: #232b34;
+    --text: #c9d1d9; --muted: #7d8590;
+    --danger: #ff6b6b; --danger-dim: #3a1f22;
+    --good: #56d364; --good-dim: #14251a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+  h1 { font-size: 1.9rem; margin: 0 0 0.5rem; }
+  p.lead { color: var(--muted); max-width: 560px; }
+  .cards { display: grid; gap: 1.1rem; margin-top: 2rem; }
+  a.card {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.4rem 1.5rem;
+    text-decoration: none;
+    color: var(--text);
+    background: var(--panel);
+    transition: border-color 0.15s;
+  }
+  a.card:hover { border-color: #3a4552; }
+  a.card.vuln { border-left: 3px solid var(--danger); }
+  a.card.patch { border-left: 3px solid var(--good); }
+  .card h2 { margin: 0 0 0.3rem; font-size: 1.15rem; }
+  .card p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+  .card .arrow { float: right; color: var(--muted); }
+  .foot-note {
+    margin-top: 2.5rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.1rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  code { font-family: ui-monospace, "JetBrains Mono", Consolas, monospace; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Web App Security Demo</h1>
+  <p class="lead">
+    Two versions of the same tiny app: one with SQL Injection, XSS and
+    Clickjacking left in, one with each fixed. Built for internal security
+    training — everything here runs client-side against mock data, so it's
+    safe to click through together as a team.
+  </p>
+
+  <div class="cards">
+    <a class="card vuln" href="vulnerable.html">
+      <span class="arrow">→</span>
+      <h2>Vulnerable demo</h2>
+      <p>SQL Injection login bypass, unescaped XSS in search, no frame protection.</p>
+    </a>
+    <a class="card patch" href="patched.html">
+      <span class="arrow">→</span>
+      <h2>Patched demo</h2>
+      <p>Same UI, with safe lookups, escaped output, and a framing check.</p>
+    </a>
+    <a class="card" href="clickjack-test.html">
+      <span class="arrow">→</span>
+      <h2>Clickjacking test</h2>
+      <p>Both pages loaded in an iframe side by side, to see the difference directly.</p>
+    </a>
+  </div>
+
+  <div class="foot-note">
+    See <code>ATTACK_DEMO_GUIDE.md</code> in the repository for a
+    step-by-step script to run this demo live with your team, and
+    <code>SECURITY_REPORT.md</code> for the full written report.
+  </div>
+</main>
+</body>
+</html>

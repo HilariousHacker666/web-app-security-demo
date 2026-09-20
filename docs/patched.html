@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patched Demo — Security Training</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #12181f;
+    --border: #232b34;
+    --text: #c9d1d9;
+    --muted: #7d8590;
+    --good: #56d364;
+    --good-dim: #14251a;
+    --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+    padding-bottom: 4rem;
+  }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  header a { color: var(--muted); text-decoration: none; font-size: 0.9rem; }
+  header a:hover { color: var(--text); }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--good-dim);
+    color: var(--good);
+    border: 1px solid #1f5c33;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 0 1.25rem; }
+  .note {
+    background: var(--good-dim);
+    border: 1px solid #1f5c33;
+    color: #a8e6b8;
+    padding: 0.9rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin: 1.5rem 0;
+  }
+  section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.75rem;
+  }
+  h1 { font-size: 1.6rem; margin: 0; }
+  h2 { font-size: 1.15rem; margin: 0 0 0.25rem; }
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.1rem; }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.3rem; }
+  input[type=text], input[type=password] {
+    width: 100%;
+    background: #0a0e13;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.55rem 0.7rem;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    margin-bottom: 0.9rem;
+  }
+  button {
+    background: var(--good);
+    color: #052b0e;
+    border: none;
+    font-weight: 700;
+    padding: 0.55rem 1.1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  button:hover { filter: brightness(1.08); }
+  .query-box, .result-box {
+    margin-top: 1rem;
+    background: #0a0e13;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.8rem 0.9rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #9fb0c3;
+  }
+  .result-box.success { border-color: #1f5c33; color: #b9e6a3; background: #0f200f; }
+  .result-box.fail { border-color: var(--border); color: var(--muted); }
+  .hint { font-size: 0.78rem; color: var(--muted); margin-top: 0.5rem; }
+  code { font-family: var(--mono); color: #8fd6a0; }
+  footer { text-align: center; margin-top: 2rem; color: var(--muted); font-size: 0.85rem; }
+  footer a { color: #6ea8ff; }
+  #frameNotice {
+    display: none;
+    background: #1a1206;
+    border: 1px solid #5c4a1f;
+    color: #f0c96b;
+    padding: 0.9rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin: 1.5rem 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <span class="badge">● PATCHED VERSION</span>
+  </div>
+  <nav>
+    <a href="index.html">← All demos</a> &nbsp;|&nbsp;
+    <a href="vulnerable.html">View vulnerable version →</a>
+  </nav>
+</header>
+
+<main id="pageBody">
+  <h1 style="margin-top:1.5rem;">Patched Demo</h1>
+  <div class="note">
+    Same UI as the vulnerable page, same mock in-browser data, but built
+    with the fixes from <code>patched/app.py</code>: parameterized-style
+    lookups, escaped output, and a framing check.
+  </div>
+  <div id="frameNotice"></div>
+
+  <section>
+    <h2>1 · Login (SQL Injection — fixed)</h2>
+    <p class="subtitle">Mock accounts: <code>demo_admin</code> / <code>DemoPass!2024</code></p>
+    <form id="loginForm">
+      <label for="u">Username</label>
+      <input type="text" id="u" autocomplete="off" placeholder="try: demo_admin' OR '1'='1">
+      <label for="p">Password</label>
+      <input type="text" id="p" autocomplete="off" placeholder="anything">
+      <button type="submit">Login</button>
+    </form>
+    <div class="hint">
+      The username and password are compared as plain values against the
+      record — never concatenated into a query string, so quote
+      characters and SQL keywords in the input have no special meaning:
+    </div>
+    <div class="query-box" id="queryPreview">lookup(username, password) — values compared directly, no string built</div>
+    <div class="result-box" id="loginResult" style="display:none;"></div>
+  </section>
+
+  <section>
+    <h2>2 · Search (XSS — fixed)</h2>
+    <p class="subtitle">Try: <code>&lt;img src=x onerror="alert('XSS executed!')"&gt;</code></p>
+    <label for="q">Search</label>
+    <input type="text" id="q" autocomplete="off" placeholder="search term">
+    <button id="searchBtn" type="button">Search</button>
+    <div class="hint">Results are inserted with <code>textContent</code>, so markup is shown as plain text, never executed:</div>
+    <div class="result-box" id="searchResult">Results for: </div>
+  </section>
+
+  <section>
+    <h2>3 · Clickjacking — mitigated</h2>
+    <p class="subtitle">
+      This page checks whether it's been loaded inside a frame and blocks
+      its own content if so. In production, the real fix is a server-sent
+      <code>X-Frame-Options</code> / <code>Content-Security-Policy</code>
+      header (shown in <code>patched/app.py</code>) — GitHub Pages can't
+      send custom headers, so this page uses a JavaScript check as a
+      stand-in for the demo.
+    </p>
+    <a href="clickjack-test.html"><button type="button">Open the framing test →</button></a>
+  </section>
+
+  <footer>
+    <a href="index.html">← Back to demo index</a> &nbsp;·&nbsp;
+    <a href="vulnerable.html">See the vulnerable version →</a>
+  </footer>
+</main>
+
+<script>
+  // Clickjacking mitigation stand-in (see note above re: GitHub Pages headers)
+  if (window.top !== window.self) {
+    document.getElementById('pageBody').style.display = 'none';
+    const notice = document.getElementById('frameNotice');
+    notice.style.display = 'block';
+    notice.textContent =
+      'Blocked: this page detected it is being displayed inside a frame ' +
+      'and refused to render its content, the same way X-Frame-Options: DENY would.';
+  }
+
+  const users = [
+    { username: 'demo_admin', password: 'DemoPass!2024' },
+    { username: 'demo_alice', password: 'AlicePass!99' },
+  ];
+
+  document.getElementById('loginForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const u = document.getElementById('u').value;
+    const p = document.getElementById('p').value;
+    // FIX: values are compared directly against each record, never
+    // interpolated into a query string, so injected quotes/keywords
+    // are just literal characters being compared, not SQL syntax.
+    const matched = users.find((row) => row.username === u && row.password === p);
+    const box = document.getElementById('loginResult');
+    box.style.display = 'block';
+    if (matched) {
+      box.className = 'result-box success';
+      box.textContent = `Login succeeded — signed in as "${matched.username}".`;
+    } else {
+      box.className = 'result-box fail';
+      box.textContent = 'Invalid credentials.';
+    }
+  });
+
+  document.getElementById('searchBtn').addEventListener('click', () => {
+    const q = document.getElementById('q').value;
+    const box = document.getElementById('searchResult');
+    // FIX: textContent never interprets its input as markup
+    box.textContent = 'Results for: ' + q;
+  });
+</script>
+
+</body>
+</html>
