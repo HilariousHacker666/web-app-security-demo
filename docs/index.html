@@ -6,81 +6,352 @@
 <title>Web App Security Demo</title>
 <style>
   :root {
-    --bg: #0d1117; --panel: #12181f; --border: #232b34;
-    --text: #c9d1d9; --muted: #7d8590;
-    --danger: #ff6b6b; --danger-dim: #3a1f22;
-    --good: #56d364; --good-dim: #14251a;
+    --bg: #0d1117;
+    --panel: #12181f;
+    --border: #232b34;
+    --text: #c9d1d9;
+    --muted: #7d8590;
+    --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    --accent: #ff6b6b;
+    --accent-dim: #3a1f22;
+    --accent-border: #5c2429;
+    --accent-fg: #1a0000;
+  }
+  body.mode-patched {
+    --accent: #56d364;
+    --accent-dim: #14251a;
+    --accent-border: #1f5c33;
+    --accent-fg: #052b0e;
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0; background: var(--bg); color: var(--text);
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
     font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
     line-height: 1.5;
+    padding-bottom: 3rem;
   }
-  main { max-width: 720px; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
-  h1 { font-size: 1.9rem; margin: 0 0 0.5rem; }
-  p.lead { color: var(--muted); max-width: 560px; }
-  .cards { display: grid; gap: 1.1rem; margin-top: 2rem; }
-  a.card {
-    display: block;
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 1.25rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+  header h1 { font-size: 1.1rem; margin: 0; font-weight: 700; }
+  .toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.3rem;
+  }
+  .toggle-wrap button {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .toggle-wrap button.active.vuln { background: var(--accent-dim); color: #ff8f8f; }
+  .toggle-wrap button.active.patch { background: var(--accent-dim); color: #8fe39c; }
+  main { max-width: 760px; margin: 0 auto; padding: 0 1.25rem; }
+  .banner {
+    margin: 1.5rem 0;
+    padding: 0.9rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-border);
+    color: var(--text);
+  }
+  #frameNotice {
+    display: none;
+    margin: 1.5rem 0;
+    padding: 0.9rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: #1a1206;
+    border: 1px solid #5c4a1f;
+    color: #f0c96b;
+  }
+  section {
+    background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 1.4rem 1.5rem;
-    text-decoration: none;
-    color: var(--text);
-    background: var(--panel);
-    transition: border-color 0.15s;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
   }
-  a.card:hover { border-color: #3a4552; }
-  a.card.vuln { border-left: 3px solid var(--danger); }
-  a.card.patch { border-left: 3px solid var(--good); }
-  .card h2 { margin: 0 0 0.3rem; font-size: 1.15rem; }
-  .card p { margin: 0; color: var(--muted); font-size: 0.92rem; }
-  .card .arrow { float: right; color: var(--muted); }
-  .foot-note {
-    margin-top: 2.5rem;
+  h2 { font-size: 1.1rem; margin: 0 0 0.25rem; display: flex; align-items: center; gap: 0.5rem; }
+  .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); display: inline-block; }
+  .subtitle { color: var(--muted); font-size: 0.87rem; margin: 0 0 1.1rem; }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.3rem; }
+  input[type=text] {
+    width: 100%;
+    background: #0a0e13;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 1rem 1.1rem;
-    font-size: 0.85rem;
-    color: var(--muted);
+    color: var(--text);
+    padding: 0.55rem 0.7rem;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    margin-bottom: 0.9rem;
   }
-  code { font-family: ui-monospace, "JetBrains Mono", Consolas, monospace; }
+  button.action {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border: none;
+    font-weight: 700;
+    padding: 0.55rem 1.1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  button.action:hover { filter: brightness(1.08); }
+  .query-box, .result-box {
+    margin-top: 1rem;
+    background: #0a0e13;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.8rem 0.9rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #9fb0c3;
+  }
+  .result-box.success { border-color: var(--accent-border); color: #cdeecb; background: #0f1e10; }
+  .result-box.fail { border-color: var(--border); color: var(--muted); }
+  .hint { font-size: 0.78rem; color: var(--muted); margin-top: 0.5rem; }
+  code { font-family: var(--mono); color: var(--accent); }
+  .frame-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  @media (max-width: 640px) { .frame-grid { grid-template-columns: 1fr; } }
+  .frame-col h3 {
+    font-size: 0.85rem;
+    margin: 0 0 0.5rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot.r { background: #ff6b6b; }
+  .dot.g { background: #56d364; }
+  .frame-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #fff; }
+  iframe { width: 100%; height: 260px; border: none; display: block; }
+  footer { text-align: center; margin-top: 2rem; color: var(--muted); font-size: 0.85rem; }
+  footer a { color: #6ea8ff; }
 </style>
 </head>
-<body>
-<main>
+<body class="mode-vulnerable">
+
+<header>
   <h1>Web App Security Demo</h1>
-  <p class="lead">
-    Two versions of the same tiny app: one with SQL Injection, XSS and
-    Clickjacking left in, one with each fixed. Built for internal security
-    training — everything here runs client-side against mock data, so it's
-    safe to click through together as a team.
-  </p>
-
-  <div class="cards">
-    <a class="card vuln" href="vulnerable.html">
-      <span class="arrow">→</span>
-      <h2>Vulnerable demo</h2>
-      <p>SQL Injection login bypass, unescaped XSS in search, no frame protection.</p>
-    </a>
-    <a class="card patch" href="patched.html">
-      <span class="arrow">→</span>
-      <h2>Patched demo</h2>
-      <p>Same UI, with safe lookups, escaped output, and a framing check.</p>
-    </a>
-    <a class="card" href="clickjack-test.html">
-      <span class="arrow">→</span>
-      <h2>Clickjacking test</h2>
-      <p>Both pages loaded in an iframe side by side, to see the difference directly.</p>
-    </a>
+  <div class="toggle-wrap" id="toggleWrap">
+    <button type="button" class="active vuln" id="btnVuln">Vulnerable</button>
+    <button type="button" id="btnPatch">Patched</button>
   </div>
+</header>
 
-  <div class="foot-note">
-    See <code>ATTACK_DEMO_GUIDE.md</code> in the repository for a
-    step-by-step script to run this demo live with your team, and
-    <code>SECURITY_REPORT.md</code> for the full written report.
-  </div>
+<main>
+  <div id="frameNotice"></div>
+
+  <div class="banner" id="modeBanner"></div>
+
+  <section>
+    <h2><span class="status-dot"></span> Login <span id="loginModeLabel"></span></h2>
+    <p class="subtitle">Mock account: <code>demo_admin</code> / <code>DemoPass!2024</code> — try <code>demo_admin' OR '1'='1</code> as the username</p>
+    <form id="loginForm">
+      <label for="u">Username</label>
+      <input type="text" id="u" autocomplete="off">
+      <label for="p">Password</label>
+      <input type="text" id="p" autocomplete="off">
+      <button class="action" type="submit">Login</button>
+    </form>
+    <div class="hint" id="loginHint"></div>
+    <div class="query-box" id="queryPreview"></div>
+    <div class="result-box" id="loginResult" style="display:none;"></div>
+  </section>
+
+  <section>
+    <h2><span class="status-dot"></span> Search <span id="searchModeLabel"></span></h2>
+    <p class="subtitle">Try: <code>&lt;img src=x onerror="alert('XSS executed!')"&gt;</code></p>
+    <label for="q">Search</label>
+    <input type="text" id="q" autocomplete="off">
+    <button class="action" type="button" id="searchBtn">Search</button>
+    <div class="hint" id="searchHint"></div>
+    <div class="result-box" id="searchResult">Results for: </div>
+  </section>
+
+  <section id="clickjackSection">
+    <h2><span class="status-dot"></span> Clickjacking self-test</h2>
+    <p class="subtitle">
+      This app embedded twice, in an iframe, once forced into each mode —
+      showing whether the framed copy renders or blocks itself.
+    </p>
+    <div class="frame-grid" id="frameGrid"></div>
+  </section>
+
+  <footer>
+    See <a href="https://github.com/HilariousHacker666/web-app-security-demo/blob/main/SECURITY_REPORT.md" target="_blank" rel="noopener">SECURITY_REPORT.md</a> and
+    <a href="https://github.com/HilariousHacker666/web-app-security-demo/blob/main/ATTACK_DEMO_GUIDE.md" target="_blank" rel="noopener">ATTACK_DEMO_GUIDE.md</a> in the repository
+    for the full written report and presenter script.
+  </footer>
 </main>
+
+<script src="sql-eval.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  const isFramed = window.top !== window.self;
+  let mode = params.get('mode') === 'patched' ? 'patched' : 'vulnerable';
+
+  const users = [
+    { username: 'demo_admin', password: 'DemoPass!2024' },
+    { username: 'demo_alice', password: 'AlicePass!99' },
+  ];
+
+  // --- Clickjacking: if framed AND in patched mode, refuse to render ---
+  if (isFramed && mode === 'patched') {
+    document.body.innerHTML =
+      '<div style="padding:1.5rem;font-family:sans-serif;background:#1a1206;color:#f0c96b;">' +
+      'Blocked: this page detected it is displayed inside a frame and refused ' +
+      'to render, the same way <code>X-Frame-Options: DENY</code> would.</div>';
+  } else {
+    initApp();
+  }
+
+  function initApp() {
+    if (isFramed) {
+      // Framed instance: hide the mode toggle and the nested self-test section,
+      // to avoid the page embedding itself infinitely.
+      document.getElementById('toggleWrap').style.display = 'none';
+      document.getElementById('clickjackSection').style.display = 'none';
+    } else {
+      document.getElementById('frameGrid').innerHTML =
+        buildFrame('vulnerable', 'r') + buildFrame('patched', 'g');
+    }
+
+    applyMode();
+
+    document.getElementById('btnVuln').addEventListener('click', () => setMode('vulnerable'));
+    document.getElementById('btnPatch').addEventListener('click', () => setMode('patched'));
+
+    document.getElementById('u').addEventListener('input', updatePreview);
+    document.getElementById('p').addEventListener('input', updatePreview);
+
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleLogin();
+    });
+    document.getElementById('searchBtn').addEventListener('click', handleSearch);
+  }
+
+  function buildFrame(m, dotClass) {
+    return `<div class="frame-col">
+      <h3><span class="dot ${dotClass}"></span> ${m === 'vulnerable' ? 'Vulnerable mode' : 'Patched mode'}</h3>
+      <div class="frame-wrap"><iframe src="index.html?mode=${m}" title="${m} mode in frame"></iframe></div>
+    </div>`;
+  }
+
+  function setMode(m) {
+    mode = m;
+    const url = new URL(location.href);
+    url.searchParams.set('mode', m);
+    history.replaceState(null, '', url);
+    applyMode();
+  }
+
+  function applyMode() {
+    const isVuln = mode === 'vulnerable';
+    document.body.className = isVuln ? 'mode-vulnerable' : 'mode-patched';
+    document.getElementById('btnVuln').classList.toggle('active', isVuln);
+    document.getElementById('btnVuln').classList.toggle('vuln', true);
+    document.getElementById('btnPatch').classList.toggle('active', !isVuln);
+    document.getElementById('btnPatch').classList.toggle('patch', true);
+
+    const banner = document.getElementById('modeBanner');
+    banner.textContent = isVuln
+      ? 'Vulnerable mode: this app runs entirely in your browser against mock data, with the same insecure logic as vulnerable/app.py — no real server or database behind it.'
+      : 'Patched mode: same UI and mock data, with the fixes from patched/app.py applied — parameterized-style lookups, escaped output, and a framing check.';
+
+    document.getElementById('loginModeLabel').textContent = isVuln ? '(SQL Injection)' : '(SQL Injection — fixed)';
+    document.getElementById('searchModeLabel').textContent = isVuln ? '(XSS)' : '(XSS — fixed)';
+    document.getElementById('loginHint').textContent = isVuln
+      ? 'Live query, built by string concatenation (exactly like the real code):'
+      : 'Username and password are compared as plain values — never concatenated into a query string:';
+    document.getElementById('searchHint').textContent = isVuln
+      ? 'Results are inserted with innerHTML, unescaped:'
+      : 'Results are inserted with textContent, so markup is shown as plain text, never executed:';
+
+    document.getElementById('loginResult').style.display = 'none';
+    document.getElementById('searchResult').textContent = 'Results for: ';
+    updatePreview();
+  }
+
+  function updatePreview() {
+    const box = document.getElementById('queryPreview');
+    if (mode === 'vulnerable') {
+      const u = document.getElementById('u').value;
+      const p = document.getElementById('p').value;
+      box.textContent = "SELECT * FROM users WHERE username = '" + u + "' AND password = '" + p + "'";
+      box.style.display = 'block';
+    } else {
+      box.textContent = 'lookup(username, password) — values compared directly, no string built';
+      box.style.display = 'block';
+    }
+  }
+
+  function handleLogin() {
+    const u = document.getElementById('u').value;
+    const p = document.getElementById('p').value;
+    const box = document.getElementById('loginResult');
+    box.style.display = 'block';
+
+    let matched, extra = '';
+    if (mode === 'vulnerable') {
+      const r = vulnerableLogin(u, p, users);
+      matched = r.matched;
+      if (matched) extra = `\nQuery actually evaluated (after any SQL comment truncation):\n${r.cleaned}`;
+    } else {
+      matched = users.find((row) => row.username === u && row.password === p);
+    }
+
+    if (matched) {
+      box.className = 'result-box success';
+      box.textContent = `Login succeeded — signed in as "${matched.username}"${mode === 'vulnerable' ? ', no valid password required.' : '.'}${extra}`;
+    } else {
+      box.className = 'result-box fail';
+      box.textContent = 'Invalid credentials.';
+    }
+  }
+
+  function handleSearch() {
+    const q = document.getElementById('q').value;
+    const box = document.getElementById('searchResult');
+    if (mode === 'vulnerable') {
+      box.innerHTML = 'Results for: ' + q; // VULNERABLE: unescaped
+    } else {
+      box.textContent = 'Results for: ' + q; // FIX: safe by construction
+    }
+  }
+</script>
+
 </body>
 </html>
