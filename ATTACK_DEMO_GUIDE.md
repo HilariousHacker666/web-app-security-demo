@@ -6,7 +6,7 @@ Patched** switch in the top right — flip it to move between the two
 versions of the same login, search, and framing behavior, without
 navigating to a different page.
 
-All three attacks run entirely in the browser against mock, in-memory
+All five attacks run entirely in the browser against mock, in-memory
 data — nothing here touches a real server or a real database, so it's
 safe to demonstrate on a shared screen or projector.
 
@@ -105,11 +105,54 @@ locked to each mode.
 
 ---
 
+## Demo 4: CSRF — changing an account setting without the user's knowledge
+
+**Toggle set to "Vulnerable."** Scroll to the "Change email" section.
+
+1. Show the legitimate flow first: type a new email and click **Update
+   email**. It works normally — this is the real, expected use of the
+   form.
+2. Now click **"Simulate a forged request from another site."** This
+   stands in for a hidden form on an attacker's page that
+   auto-submits to this same action the moment a logged-in victim
+   visits it.
+3. **Result:** the email silently changes to `attacker@evil-site.example`
+   — the real user never filled out anything. Point out the request
+   preview box: no `csrf_token` field is present or checked at all.
+
+**Then flip the toggle to "Patched"** and repeat the forged-request
+click. **Result:** it's rejected — the preview box now shows a
+`csrf_token` value that only this page's own form legitimately carries,
+so the attacker's forged request has no way to produce a valid one.
+
+---
+
+## Demo 5: Insecure session cookie — why cookie flags matter
+
+**Toggle set to "Vulnerable."** Scroll to the "Session cookie" section.
+
+1. Click **"Simulate login (issue session cookie)."**
+2. Click **"Read cookie via JavaScript."** **Result:** the actual
+   cookie value is printed on the page. Explain: *this is standing in
+   for what an XSS payload — like the one from Demo 2 — could do: read
+   the session cookie directly and send it to an attacker, letting
+   them hijack the session even without the SQLi or login bugs.*
+
+**Then flip the toggle to "Patched"** and repeat both clicks.
+**Result:** nothing readable comes back. Explain: a real `HttpOnly`
+cookie is never exposed to JavaScript at all — even a successful XSS
+injection couldn't read it. Combined with `Secure` (HTTPS only) and
+`SameSite` (limits cross-site sending), this closes off a whole class
+of session-hijacking techniques even if another bug slips through
+elsewhere.
+
+---
+
 ## Closing summary for the room
 
-- All three attacks worked because user input was trusted by default
+- All five attacks worked because user input, requests, or client state were trusted by default
   instead of being treated as untrusted data.
-- All three fixes follow the same underlying pattern: separate data
+- All five fixes follow the same underlying pattern: separate data
   from code/structure (SQL, HTML, or framing rules), and make the safe
   behavior the default rather than something developers have to
   remember to add every time.
