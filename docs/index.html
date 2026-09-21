@@ -173,6 +173,10 @@
 <main>
   <div id="frameNotice"></div>
 
+  <p style="font-size:0.78rem;color:var(--muted);margin:1.25rem 0 0;">
+    5 vulnerabilities: SQL Injection · XSS · Clickjacking · CSRF · Insecure Session Cookie
+  </p>
+
   <div class="banner" id="modeBanner"></div>
 
   <section>
@@ -198,6 +202,33 @@
     <button class="action" type="button" id="searchBtn">Search</button>
     <div class="hint" id="searchHint"></div>
     <div class="result-box" id="searchResult">Results for: </div>
+  </section>
+
+  <section>
+    <h2><span class="status-dot"></span> Change email <span id="csrfModeLabel"></span></h2>
+    <p class="subtitle">Current email on file: <strong id="currentEmailDisplay"></strong></p>
+    <form id="csrfForm">
+      <label for="newEmail">New email (legitimate request, as if you typed it yourself)</label>
+      <input type="text" id="newEmail" autocomplete="off" placeholder="you@example.com">
+      <button class="action" type="submit">Update email</button>
+    </form>
+    <div class="hint" id="csrfHint"></div>
+    <div class="query-box" id="csrfRequestPreview"></div>
+    <button class="action" type="button" id="forgeBtn" style="margin-top:0.75rem;background:#3a4552;">
+      Simulate a forged request from another site
+    </button>
+    <div class="result-box" id="csrfResult" style="display:none;"></div>
+  </section>
+
+  <section>
+    <h2><span class="status-dot"></span> Session cookie <span id="cookieModeLabel"></span></h2>
+    <p class="subtitle">Simulates whether a script on this page — standing in for an XSS payload — can read the session cookie.</p>
+    <button class="action" type="button" id="setCookieBtn">Simulate login (issue session cookie)</button>
+    <button class="action" type="button" id="readCookieBtn" style="margin-left:0.5rem;background:#3a4552;">
+      Read cookie via JavaScript
+    </button>
+    <div class="hint" id="cookieHint"></div>
+    <div class="result-box" id="cookieResult" style="display:none;"></div>
   </section>
 
   <section id="clickjackSection">
@@ -226,6 +257,11 @@
     { username: 'demo_admin', password: 'DemoPass!2024' },
     { username: 'demo_alice', password: 'AlicePass!99' },
   ];
+
+  const csrfToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const DEFAULT_EMAIL = 'demo_admin@example.com';
+  let currentEmail = DEFAULT_EMAIL;
+  const SESSION_COOKIE_NAME = 'demo_session';
 
   // --- Clickjacking: if framed AND in patched mode, refuse to render ---
   if (isFramed && mode === 'patched') {
@@ -261,6 +297,11 @@
       handleLogin();
     });
     document.getElementById('searchBtn').addEventListener('click', handleSearch);
+
+    document.getElementById('csrfForm').addEventListener('submit', handleUpdateEmail);
+    document.getElementById('forgeBtn').addEventListener('click', handleForgedRequest);
+    document.getElementById('setCookieBtn').addEventListener('click', handleSetCookie);
+    document.getElementById('readCookieBtn').addEventListener('click', handleReadCookie);
   }
 
   function buildFrame(m, dotClass) {
@@ -293,12 +334,31 @@
 
     document.getElementById('loginModeLabel').textContent = isVuln ? '(SQL Injection)' : '(SQL Injection — fixed)';
     document.getElementById('searchModeLabel').textContent = isVuln ? '(XSS)' : '(XSS — fixed)';
+    document.getElementById('csrfModeLabel').textContent = isVuln ? '(CSRF)' : '(CSRF — fixed)';
+    document.getElementById('cookieModeLabel').textContent = isVuln ? '(Insecure cookie)' : '(Insecure cookie — fixed)';
+
     document.getElementById('loginHint').textContent = isVuln
       ? 'Live query, built by string concatenation (exactly like the real code):'
       : 'Username and password are compared as plain values — never concatenated into a query string:';
     document.getElementById('searchHint').textContent = isVuln
       ? 'Results are inserted with innerHTML, unescaped:'
       : 'Results are inserted with textContent, so markup is shown as plain text, never executed:';
+    document.getElementById('csrfHint').textContent = isVuln
+      ? 'No token is required on this action — any request that reaches it is trusted, no matter where it came from:'
+      : 'A per-session token is required and validated before the change is applied:';
+    document.getElementById('csrfRequestPreview').textContent = isVuln
+      ? 'POST /change-email   (no csrf_token field present)'
+      : `POST /change-email\ncsrf_token: ${csrfToken}`;
+    document.getElementById('cookieHint').textContent = isVuln
+      ? 'The session cookie is set with no HttpOnly / Secure / SameSite flags, so any script on this page can read it freely:'
+      : 'The session cookie would be set server-side with HttpOnly (plus Secure and SameSite), making it invisible to JavaScript entirely:';
+
+    // Reset per-section demo state on every mode switch
+    currentEmail = DEFAULT_EMAIL;
+    document.getElementById('currentEmailDisplay').textContent = currentEmail;
+    document.getElementById('csrfResult').style.display = 'none';
+    document.getElementById('cookieResult').style.display = 'none';
+    document.cookie = SESSION_COOKIE_NAME + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
 
     document.getElementById('loginResult').style.display = 'none';
     document.getElementById('searchResult').textContent = 'Results for: ';
@@ -349,6 +409,74 @@
       box.innerHTML = 'Results for: ' + q; // VULNERABLE: unescaped
     } else {
       box.textContent = 'Results for: ' + q; // FIX: safe by construction
+    }
+  }
+
+  function handleUpdateEmail(e) {
+    if (e) e.preventDefault();
+    const email = document.getElementById('newEmail').value.trim() || DEFAULT_EMAIL;
+    currentEmail = email;
+    document.getElementById('currentEmailDisplay').textContent = currentEmail;
+    const box = document.getElementById('csrfResult');
+    box.style.display = 'block';
+    box.className = 'result-box success';
+    box.textContent = mode === 'vulnerable'
+      ? `Email updated to "${email}". This request had no token to check, but it went through anyway.`
+      : `Email updated to "${email}", because this in-app form included a valid csrf_token.`;
+  }
+
+  function handleForgedRequest() {
+    const box = document.getElementById('csrfResult');
+    box.style.display = 'block';
+    const forgedEmail = 'attacker@evil-site.example';
+    // Simulates a hidden auto-submitting form on another site, posting to
+    // this same action. It has no way to know a valid session token.
+    if (mode === 'vulnerable') {
+      currentEmail = forgedEmail;
+      document.getElementById('currentEmailDisplay').textContent = currentEmail;
+      box.className = 'result-box success';
+      box.textContent = `Forged request succeeded — email silently changed to "${forgedEmail}" without the real user filling out any form themselves.`;
+    } else {
+      box.className = 'result-box fail';
+      box.textContent = 'Forged request rejected — it carried no valid csrf_token, so the server refused the change.';
+    }
+  }
+
+  function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  function handleSetCookie() {
+    const sid = 'sid_' + Math.random().toString(36).slice(2, 10);
+    const box = document.getElementById('cookieResult');
+    box.style.display = 'block';
+    if (mode === 'vulnerable') {
+      // VULNERABLE: cookie set with no HttpOnly/Secure/SameSite flags,
+      // so it's fully readable from JavaScript.
+      document.cookie = SESSION_COOKIE_NAME + '=' + sid + '; path=/';
+      box.className = 'result-box success';
+      box.textContent = 'Session cookie issued and stored via document.cookie — readable by any script running on this page.';
+    } else {
+      // FIX (simulated): a real HttpOnly cookie is set by the server and
+      // never appears in document.cookie at all, so nothing is set here.
+      box.className = 'result-box success';
+      box.textContent = 'Session cookie issued server-side with HttpOnly, Secure, and SameSite set — it never becomes visible to document.cookie in the first place.';
+    }
+  }
+
+  function handleReadCookie() {
+    const box = document.getElementById('cookieResult');
+    box.style.display = 'block';
+    const val = getCookie(SESSION_COOKIE_NAME);
+    if (mode === 'vulnerable') {
+      box.className = 'result-box success';
+      box.textContent = val
+        ? `document.cookie → "${SESSION_COOKIE_NAME}=${val}"\nAn attacker's injected script (e.g. via the XSS above) could read and exfiltrate this directly.`
+        : 'No cookie set yet — click "Simulate login" first.';
+    } else {
+      box.className = 'result-box fail';
+      box.textContent = `document.cookie → "${val ?? ''}"\nNothing readable here — a real HttpOnly cookie is never exposed to JavaScript, so an XSS payload on this page could not steal it.`;
     }
   }
 </script>
