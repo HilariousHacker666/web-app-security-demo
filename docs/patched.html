@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paw & Pour — Staff Console (Patched)</title>
+<link rel="stylesheet" href="pet-cafe.css">
+</head>
+<body class="mode-patched" id="bodyEl">
+
+<nav class="topnav">
+  <div class="brand">
+    <span class="mark">🐾</span>
+    <div>
+      <h1>Paw & Pour</h1>
+      <div class="sub">Staff console</div>
+    </div>
+  </div>
+  <div class="nav-right" id="navRight">
+    <a class="nav-link" href="#login">Login</a>
+    <a class="nav-link" href="#search">Search</a>
+    <a class="nav-link" href="#gallery">Pets</a>
+    <a class="nav-link" href="#menu">Menu</a>
+    <a class="nav-link" href="#bookings">Bookings</a>
+    <a class="nav-link" href="#settings">Settings</a>
+    <a class="nav-link" href="#session">Session</a>
+    <span class="mode-badge">● Patched build</span>
+    <a class="nav-link" href="vulnerable.html">View vulnerable →</a>
+  </div>
+</nav>
+
+<div id="pageBody">
+<section class="hero" style="background:none;border:none;padding-bottom:0;">
+  <h2>Good morning — here's what's happening today.</h2>
+  <p class="tagline" id="heroTagline"></p>
+  <div class="info-chips">
+    <span class="chip" id="chipAddress"></span>
+    <span class="chip" id="chipHours"></span>
+    <span class="chip" id="chipPhone"></span>
+  </div>
+</section>
+
+<main>
+  <div class="banner">
+    This is the patched build of the Paw & Pour staff console — same UI
+    and mock data as the vulnerable version, with the fixes from
+    <code>patched/app.py</code> applied to each flaw.
+  </div>
+
+  <section id="login">
+    <h3><span class="status-dot"></span> Staff login <span style="color:var(--muted);font-weight:400;font-size:0.85rem;">— SQL Injection, fixed</span></h3>
+    <p class="section-sub">Mock account: <code>staff_manager</code> / <code>Marigold@2024</code> — try <code>staff_manager' OR '1'='1</code> as the username</p>
+    <form id="loginForm">
+      <label for="u">Username</label>
+      <input type="text" id="u" autocomplete="off">
+      <label for="p">Password</label>
+      <input type="text" id="p" autocomplete="off">
+      <button class="action" type="submit">Log in</button>
+    </form>
+    <div class="hint">Username and password are compared as plain values — never concatenated into a query string:</div>
+    <div class="code-box" id="queryPreview">lookup(username, password) — values compared directly, no string built</div>
+    <div class="result-box" id="loginResult" style="display:none;"></div>
+  </section>
+
+  <section id="search">
+    <h3><span class="status-dot"></span> Find a pet or customer <span style="color:var(--muted);font-weight:400;font-size:0.85rem;">— XSS, fixed</span></h3>
+    <p class="section-sub">Try: <code>&lt;img src=x onerror="alert('XSS executed!')"&gt;</code></p>
+    <label for="q">Search</label>
+    <input type="text" id="q" autocomplete="off" placeholder="pet name, customer name...">
+    <button class="action" type="button" id="searchBtn">Search</button>
+    <div class="hint">Results are inserted with textContent, so markup is shown as plain text, never executed:</div>
+    <div class="result-box" id="searchResult">Results for: </div>
+  </section>
+
+  <section id="gallery">
+    <h3><span class="status-dot" style="background:var(--sage);"></span> Today's pets</h3>
+    <p class="section-sub">Who's in the café right now.</p>
+    <div class="pet-grid" id="petGrid"></div>
+  </section>
+
+  <section id="menu">
+    <h3><span class="status-dot" style="background:var(--sage);"></span> Café menu</h3>
+    <p class="section-sub">Today's board.</p>
+    <div class="menu-groups" id="menuGroups"></div>
+  </section>
+
+  <section id="bookings">
+    <h3><span class="status-dot" style="background:var(--sage);"></span> Today's bookings</h3>
+    <table class="bookings-table">
+      <thead><tr><th>Time</th><th>Name</th><th>Details</th><th>Spot</th></tr></thead>
+      <tbody id="bookingsBody"></tbody>
+    </table>
+  </section>
+
+  <section id="settings">
+    <h3><span class="status-dot"></span> Notification settings <span style="color:var(--muted);font-weight:400;font-size:0.85rem;">— CSRF, fixed</span></h3>
+    <p class="section-sub">Current booking-reminder email: <strong id="currentEmailDisplay"></strong></p>
+    <form id="csrfForm">
+      <label for="newEmail">New reminder email (as if you typed it yourself)</label>
+      <input type="text" id="newEmail" autocomplete="off" placeholder="you@example.com">
+      <button class="action" type="submit">Update email</button>
+    </form>
+    <div class="hint" id="csrfHint">A per-session token is required and validated before the change is applied:</div>
+    <div class="code-box" id="csrfRequestPreview"></div>
+    <button class="action secondary" type="button" id="forgeBtn" style="margin-top:0.75rem;">Simulate a forged request from another site</button>
+    <div class="result-box" id="csrfResult" style="display:none;"></div>
+  </section>
+
+  <section id="session">
+    <h3><span class="status-dot"></span> Session cookie <span style="color:var(--muted);font-weight:400;font-size:0.85rem;">— insecure cookie, fixed</span></h3>
+    <p class="section-sub">Whether a script on this page — standing in for an XSS payload — can read the login session cookie.</p>
+    <button class="action" type="button" id="setCookieBtn">Simulate login (issue session cookie)</button>
+    <button class="action secondary" type="button" id="readCookieBtn" style="margin-left:0.5rem;">Read cookie via JavaScript</button>
+    <div class="hint" id="cookieHint">The session cookie would be set server-side with HttpOnly (plus Secure and SameSite), making it invisible to JavaScript entirely:</div>
+    <div class="result-box" id="cookieResult" style="display:none;"></div>
+  </section>
+
+  <section id="framing">
+    <h3><span class="status-dot"></span> Clickjacking, fixed</h3>
+    <p class="section-sub">
+      This page checks whether it's been loaded inside a frame and blocks
+      its own content if so — standing in for the real
+      <code>X-Frame-Options</code> / <code>Content-Security-Policy</code>
+      headers used in <code>patched/app.py</code> (GitHub Pages can't send
+      custom headers, so this page uses a JavaScript check for the demo).
+    </p>
+    <a href="clickjack-test.html"><button class="action secondary" type="button">Open the framing test →</button></a>
+  </section>
+
+  <footer>
+    <a href="index.html">← Back to demo index</a> ·
+    <a href="vulnerable.html">See the vulnerable version →</a><br><br>
+    See <a href="https://github.com/HilariousHacker666/web-app-security-demo/blob/main/SECURITY_REPORT.md" target="_blank" rel="noopener">SECURITY_REPORT.md</a> and
+    <a href="https://github.com/HilariousHacker666/web-app-security-demo/blob/main/ATTACK_DEMO_GUIDE.md" target="_blank" rel="noopener">ATTACK_DEMO_GUIDE.md</a> for the full report and presenter script.
+  </footer>
+</main>
+</div>
+
+<script src="pet-cafe-data.js"></script>
+<script>
+  const isFramed = window.top !== window.self;
+
+  // FIX: Clickjacking — refuse to render this page's content when framed.
+  if (isFramed) {
+    document.getElementById('pageBody').style.display = 'none';
+    const notice = document.createElement('div');
+    notice.style.cssText = 'padding:1.5rem;font-family:sans-serif;background:#3a2c10;color:#f0d98f;';
+    notice.innerHTML = 'Blocked: this page detected it is displayed inside a frame and refused to render, the same way <code>X-Frame-Options: DENY</code> would.';
+    document.body.prepend(notice);
+  } else {
+    initApp();
+  }
+
+  function initApp() {
+    const csrfToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const DEFAULT_EMAIL = 'priya@pawandpour.example';
+    let currentEmail = DEFAULT_EMAIL;
+    const SESSION_COOKIE_NAME = 'pawpour_session';
+
+    renderStaticContent();
+    document.getElementById('currentEmailDisplay').textContent = currentEmail;
+    document.getElementById('csrfRequestPreview').textContent = `POST /change-email\ncsrf_token: ${csrfToken}`;
+
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleLogin();
+    });
+    document.getElementById('searchBtn').addEventListener('click', handleSearch);
+    document.getElementById('csrfForm').addEventListener('submit', handleUpdateEmail);
+    document.getElementById('forgeBtn').addEventListener('click', handleForgedRequest);
+    document.getElementById('setCookieBtn').addEventListener('click', handleSetCookie);
+    document.getElementById('readCookieBtn').addEventListener('click', handleReadCookie);
+
+    function handleLogin() {
+      const u = document.getElementById('u').value;
+      const p = document.getElementById('p').value;
+      const box = document.getElementById('loginResult');
+      box.style.display = 'block';
+      // FIX: values compared directly against each record, never
+      // interpolated into a query string.
+      const matched = STAFF.find((row) => row.username === u && row.password === p);
+      if (matched) {
+        box.className = 'result-box success';
+        box.textContent = `Login succeeded — signed in as "${matched.username}" (${matched.name}).`;
+      } else {
+        box.className = 'result-box fail';
+        box.textContent = 'Invalid credentials.';
+      }
+    }
+
+    function handleSearch() {
+      const q = document.getElementById('q').value;
+      // FIX: textContent never interprets its input as markup.
+      document.getElementById('searchResult').textContent = 'Results for: ' + q;
+    }
+
+    function handleUpdateEmail(e) {
+      e.preventDefault();
+      const email = document.getElementById('newEmail').value.trim() || DEFAULT_EMAIL;
+      currentEmail = email;
+      document.getElementById('currentEmailDisplay').textContent = currentEmail;
+      const box = document.getElementById('csrfResult');
+      box.style.display = 'block';
+      box.className = 'result-box success';
+      box.textContent = `Reminder email updated to "${email}", because this in-app form included a valid csrf_token.`;
+    }
+
+    function handleForgedRequest() {
+      const box = document.getElementById('csrfResult');
+      box.style.display = 'block';
+      // FIX: a forged cross-site request has no way to know the valid
+      // per-session token, so it's rejected.
+      box.className = 'result-box fail';
+      box.textContent = 'Forged request rejected — it carried no valid csrf_token, so the server refused the change.';
+    }
+
+    function getCookie(name) {
+      const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+      return match ? decodeURIComponent(match[1]) : null;
+    }
+
+    function handleSetCookie() {
+      // FIX (simulated): a real HttpOnly cookie is set by the server and
+      // never appears in document.cookie at all, so nothing is set here.
+      const box = document.getElementById('cookieResult');
+      box.style.display = 'block';
+      box.className = 'result-box success';
+      box.textContent = 'Session cookie issued server-side with HttpOnly, Secure, and SameSite set — it never becomes visible to document.cookie in the first place.';
+    }
+
+    function handleReadCookie() {
+      const box = document.getElementById('cookieResult');
+      box.style.display = 'block';
+      const val = getCookie(SESSION_COOKIE_NAME);
+      box.className = 'result-box fail';
+      box.textContent = `document.cookie → "${val ?? ''}"\nNothing readable here — a real HttpOnly cookie is never exposed to JavaScript, so an XSS payload on this page could not steal it.`;
+    }
+  }
+</script>
+
+</body>
+</html>

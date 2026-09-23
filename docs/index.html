@@ -3,483 +3,56 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Web App Security Demo</title>
+<title>Paw & Pour — Security Training Demo</title>
+<link rel="stylesheet" href="pet-cafe.css">
 <style>
-  :root {
-    --bg: #0d1117;
-    --panel: #12181f;
-    --border: #232b34;
-    --text: #c9d1d9;
-    --muted: #7d8590;
-    --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
-    --accent: #ff6b6b;
-    --accent-dim: #3a1f22;
-    --accent-border: #5c2429;
-    --accent-fg: #1a0000;
-  }
-  body.mode-patched {
-    --accent: #56d364;
-    --accent-dim: #14251a;
-    --accent-border: #1f5c33;
-    --accent-fg: #052b0e;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
-    line-height: 1.5;
-    padding-bottom: 3rem;
-  }
-  header {
-    border-bottom: 1px solid var(--border);
-    padding: 1.25rem 1.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 0.9rem;
-    position: sticky;
-    top: 0;
-    background: var(--bg);
-    z-index: 10;
-  }
-  header h1 { font-size: 1.1rem; margin: 0; font-weight: 700; }
-  .toggle-wrap {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 0.3rem;
-  }
-  .toggle-wrap button {
-    border: none;
-    background: transparent;
-    color: var(--muted);
-    padding: 0.4rem 0.9rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 600;
-  }
-  .toggle-wrap button.active.vuln { background: var(--accent-dim); color: #ff8f8f; }
-  .toggle-wrap button.active.patch { background: var(--accent-dim); color: #8fe39c; }
-  main { max-width: 760px; margin: 0 auto; padding: 0 1.25rem; }
-  .banner {
-    margin: 1.5rem 0;
-    padding: 0.9rem 1rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    background: var(--accent-dim);
-    border: 1px solid var(--accent-border);
-    color: var(--text);
-  }
-  #frameNotice {
-    display: none;
-    margin: 1.5rem 0;
-    padding: 0.9rem 1rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    background: #1a1206;
-    border: 1px solid #5c4a1f;
-    color: #f0c96b;
-  }
-  section {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-  h2 { font-size: 1.1rem; margin: 0 0 0.25rem; display: flex; align-items: center; gap: 0.5rem; }
-  .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); display: inline-block; }
-  .subtitle { color: var(--muted); font-size: 0.87rem; margin: 0 0 1.1rem; }
-  label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.3rem; }
-  input[type=text] {
-    width: 100%;
-    background: #0a0e13;
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 0.55rem 0.7rem;
-    border-radius: 6px;
-    font-family: var(--mono);
-    font-size: 0.9rem;
-    margin-bottom: 0.9rem;
-  }
-  button.action {
-    background: var(--accent);
-    color: var(--accent-fg);
-    border: none;
-    font-weight: 700;
-    padding: 0.55rem 1.1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9rem;
-  }
-  button.action:hover { filter: brightness(1.08); }
-  .query-box, .result-box {
-    margin-top: 1rem;
-    background: #0a0e13;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 0.8rem 0.9rem;
-    font-family: var(--mono);
-    font-size: 0.82rem;
-    white-space: pre-wrap;
-    word-break: break-word;
-    color: #9fb0c3;
-  }
-  .result-box.success { border-color: var(--accent-border); color: #cdeecb; background: #0f1e10; }
-  .result-box.fail { border-color: var(--border); color: var(--muted); }
-  .hint { font-size: 0.78rem; color: var(--muted); margin-top: 0.5rem; }
-  code { font-family: var(--mono); color: var(--accent); }
-  .frame-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-top: 1rem;
-  }
-  @media (max-width: 640px) { .frame-grid { grid-template-columns: 1fr; } }
-  .frame-col h3 {
-    font-size: 0.85rem;
-    margin: 0 0 0.5rem;
-    color: var(--muted);
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-  .dot.r { background: #ff6b6b; }
-  .dot.g { background: #56d364; }
-  .frame-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #fff; }
-  iframe { width: 100%; height: 260px; border: none; display: block; }
-  footer { text-align: center; margin-top: 2rem; color: var(--muted); font-size: 0.85rem; }
-  footer a { color: #6ea8ff; }
+  main.landing { max-width: 720px; padding-top: 2.5rem; }
+  main.landing h2 { font-family: var(--serif); font-size: clamp(1.8rem, 4vw, 2.5rem); margin: 0 0 0.6rem; max-width: 20ch; }
+  main.landing p.lead { color: var(--muted); max-width: 58ch; font-size: 1rem; }
+  a.card .arrow { float: right; color: var(--muted); }
 </style>
 </head>
-<body class="mode-vulnerable">
-
-<header>
-  <h1>Web App Security Demo</h1>
-  <div class="toggle-wrap" id="toggleWrap">
-    <button type="button" class="active vuln" id="btnVuln">Vulnerable</button>
-    <button type="button" id="btnPatch">Patched</button>
+<body>
+<nav class="topnav">
+  <div class="brand">
+    <span class="mark">🐾</span>
+    <div>
+      <h1>Paw & Pour</h1>
+      <div class="sub">Security training demo</div>
+    </div>
   </div>
-</header>
-
-<main>
-  <div id="frameNotice"></div>
-
-  <p style="font-size:0.78rem;color:var(--muted);margin:1.25rem 0 0;">
-    5 vulnerabilities: SQL Injection · XSS · Clickjacking · CSRF · Insecure Session Cookie
+</nav>
+<main class="landing">
+  <h2>A pet café's staff console, on purpose broken and then fixed.</h2>
+  <p class="lead">
+    Two versions of the same small staff-management app for a fictional
+    pet café: one has five common web vulnerabilities left in, the other
+    has each one patched. Everything runs client-side against mock data
+    — safe to click through together as a team.
   </p>
 
-  <div class="banner" id="modeBanner"></div>
+  <div class="cards">
+    <a class="card vuln" href="vulnerable.html">
+      <span class="arrow">→</span>
+      <h3>Vulnerable console</h3>
+      <p>SQL Injection login bypass, unescaped XSS in search, CSRF on account settings, a readable session cookie, and no frame protection.</p>
+    </a>
+    <a class="card patch" href="patched.html">
+      <span class="arrow">→</span>
+      <h3>Patched console</h3>
+      <p>Same UI and data, with safe lookups, escaped output, a CSRF token, a protected cookie, and a framing check.</p>
+    </a>
+    <a class="card" href="clickjack-test.html">
+      <span class="arrow">→</span>
+      <h3>Clickjacking test</h3>
+      <p>Both consoles loaded in an iframe side by side, to see the difference directly.</p>
+    </a>
+  </div>
 
-  <section>
-    <h2><span class="status-dot"></span> Login <span id="loginModeLabel"></span></h2>
-    <p class="subtitle">Mock account: <code>demo_admin</code> / <code>DemoPass!2024</code> — try <code>demo_admin' OR '1'='1</code> as the username</p>
-    <form id="loginForm">
-      <label for="u">Username</label>
-      <input type="text" id="u" autocomplete="off">
-      <label for="p">Password</label>
-      <input type="text" id="p" autocomplete="off">
-      <button class="action" type="submit">Login</button>
-    </form>
-    <div class="hint" id="loginHint"></div>
-    <div class="query-box" id="queryPreview"></div>
-    <div class="result-box" id="loginResult" style="display:none;"></div>
-  </section>
-
-  <section>
-    <h2><span class="status-dot"></span> Search <span id="searchModeLabel"></span></h2>
-    <p class="subtitle">Try: <code>&lt;img src=x onerror="alert('XSS executed!')"&gt;</code></p>
-    <label for="q">Search</label>
-    <input type="text" id="q" autocomplete="off">
-    <button class="action" type="button" id="searchBtn">Search</button>
-    <div class="hint" id="searchHint"></div>
-    <div class="result-box" id="searchResult">Results for: </div>
-  </section>
-
-  <section>
-    <h2><span class="status-dot"></span> Change email <span id="csrfModeLabel"></span></h2>
-    <p class="subtitle">Current email on file: <strong id="currentEmailDisplay"></strong></p>
-    <form id="csrfForm">
-      <label for="newEmail">New email (legitimate request, as if you typed it yourself)</label>
-      <input type="text" id="newEmail" autocomplete="off" placeholder="you@example.com">
-      <button class="action" type="submit">Update email</button>
-    </form>
-    <div class="hint" id="csrfHint"></div>
-    <div class="query-box" id="csrfRequestPreview"></div>
-    <button class="action" type="button" id="forgeBtn" style="margin-top:0.75rem;background:#3a4552;">
-      Simulate a forged request from another site
-    </button>
-    <div class="result-box" id="csrfResult" style="display:none;"></div>
-  </section>
-
-  <section>
-    <h2><span class="status-dot"></span> Session cookie <span id="cookieModeLabel"></span></h2>
-    <p class="subtitle">Simulates whether a script on this page — standing in for an XSS payload — can read the session cookie.</p>
-    <button class="action" type="button" id="setCookieBtn">Simulate login (issue session cookie)</button>
-    <button class="action" type="button" id="readCookieBtn" style="margin-left:0.5rem;background:#3a4552;">
-      Read cookie via JavaScript
-    </button>
-    <div class="hint" id="cookieHint"></div>
-    <div class="result-box" id="cookieResult" style="display:none;"></div>
-  </section>
-
-  <section id="clickjackSection">
-    <h2><span class="status-dot"></span> Clickjacking self-test</h2>
-    <p class="subtitle">
-      This app embedded twice, in an iframe, once forced into each mode —
-      showing whether the framed copy renders or blocks itself.
-    </p>
-    <div class="frame-grid" id="frameGrid"></div>
-  </section>
-
-  <footer>
-    See <a href="https://github.com/HilariousHacker666/web-app-security-demo/blob/main/SECURITY_REPORT.md" target="_blank" rel="noopener">SECURITY_REPORT.md</a> and
-    <a href="https://github.com/HilariousHacker666/web-app-security-demo/blob/main/ATTACK_DEMO_GUIDE.md" target="_blank" rel="noopener">ATTACK_DEMO_GUIDE.md</a> in the repository
-    for the full written report and presenter script.
-  </footer>
+  <div class="chip" style="margin-top:2rem;display:inline-flex;">
+    See <a href="https://github.com/HilariousHacker666/web-app-security-demo/blob/main/ATTACK_DEMO_GUIDE.md" target="_blank" rel="noopener" style="margin-left:0.35rem;color:var(--accent);">ATTACK_DEMO_GUIDE.md</a>&nbsp;for a presenter script, and
+    <a href="https://github.com/HilariousHacker666/web-app-security-demo/blob/main/SECURITY_REPORT.md" target="_blank" rel="noopener" style="color:var(--accent);">SECURITY_REPORT.md</a>&nbsp;for the full written report.
+  </div>
 </main>
-
-<script src="sql-eval.js"></script>
-<script>
-  const params = new URLSearchParams(location.search);
-  const isFramed = window.top !== window.self;
-  let mode = params.get('mode') === 'patched' ? 'patched' : 'vulnerable';
-
-  const users = [
-    { username: 'demo_admin', password: 'DemoPass!2024' },
-    { username: 'demo_alice', password: 'AlicePass!99' },
-  ];
-
-  const csrfToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
-  const DEFAULT_EMAIL = 'demo_admin@example.com';
-  let currentEmail = DEFAULT_EMAIL;
-  const SESSION_COOKIE_NAME = 'demo_session';
-
-  // --- Clickjacking: if framed AND in patched mode, refuse to render ---
-  if (isFramed && mode === 'patched') {
-    document.body.innerHTML =
-      '<div style="padding:1.5rem;font-family:sans-serif;background:#1a1206;color:#f0c96b;">' +
-      'Blocked: this page detected it is displayed inside a frame and refused ' +
-      'to render, the same way <code>X-Frame-Options: DENY</code> would.</div>';
-  } else {
-    initApp();
-  }
-
-  function initApp() {
-    if (isFramed) {
-      // Framed instance: hide the mode toggle and the nested self-test section,
-      // to avoid the page embedding itself infinitely.
-      document.getElementById('toggleWrap').style.display = 'none';
-      document.getElementById('clickjackSection').style.display = 'none';
-    } else {
-      document.getElementById('frameGrid').innerHTML =
-        buildFrame('vulnerable', 'r') + buildFrame('patched', 'g');
-    }
-
-    applyMode();
-
-    document.getElementById('btnVuln').addEventListener('click', () => setMode('vulnerable'));
-    document.getElementById('btnPatch').addEventListener('click', () => setMode('patched'));
-
-    document.getElementById('u').addEventListener('input', updatePreview);
-    document.getElementById('p').addEventListener('input', updatePreview);
-
-    document.getElementById('loginForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      handleLogin();
-    });
-    document.getElementById('searchBtn').addEventListener('click', handleSearch);
-
-    document.getElementById('csrfForm').addEventListener('submit', handleUpdateEmail);
-    document.getElementById('forgeBtn').addEventListener('click', handleForgedRequest);
-    document.getElementById('setCookieBtn').addEventListener('click', handleSetCookie);
-    document.getElementById('readCookieBtn').addEventListener('click', handleReadCookie);
-  }
-
-  function buildFrame(m, dotClass) {
-    return `<div class="frame-col">
-      <h3><span class="dot ${dotClass}"></span> ${m === 'vulnerable' ? 'Vulnerable mode' : 'Patched mode'}</h3>
-      <div class="frame-wrap"><iframe src="index.html?mode=${m}" title="${m} mode in frame"></iframe></div>
-    </div>`;
-  }
-
-  function setMode(m) {
-    mode = m;
-    const url = new URL(location.href);
-    url.searchParams.set('mode', m);
-    history.replaceState(null, '', url);
-    applyMode();
-  }
-
-  function applyMode() {
-    const isVuln = mode === 'vulnerable';
-    document.body.className = isVuln ? 'mode-vulnerable' : 'mode-patched';
-    document.getElementById('btnVuln').classList.toggle('active', isVuln);
-    document.getElementById('btnVuln').classList.toggle('vuln', true);
-    document.getElementById('btnPatch').classList.toggle('active', !isVuln);
-    document.getElementById('btnPatch').classList.toggle('patch', true);
-
-    const banner = document.getElementById('modeBanner');
-    banner.textContent = isVuln
-      ? 'Vulnerable mode: this app runs entirely in your browser against mock data, with the same insecure logic as vulnerable/app.py — no real server or database behind it.'
-      : 'Patched mode: same UI and mock data, with the fixes from patched/app.py applied — parameterized-style lookups, escaped output, and a framing check.';
-
-    document.getElementById('loginModeLabel').textContent = isVuln ? '(SQL Injection)' : '(SQL Injection — fixed)';
-    document.getElementById('searchModeLabel').textContent = isVuln ? '(XSS)' : '(XSS — fixed)';
-    document.getElementById('csrfModeLabel').textContent = isVuln ? '(CSRF)' : '(CSRF — fixed)';
-    document.getElementById('cookieModeLabel').textContent = isVuln ? '(Insecure cookie)' : '(Insecure cookie — fixed)';
-
-    document.getElementById('loginHint').textContent = isVuln
-      ? 'Live query, built by string concatenation (exactly like the real code):'
-      : 'Username and password are compared as plain values — never concatenated into a query string:';
-    document.getElementById('searchHint').textContent = isVuln
-      ? 'Results are inserted with innerHTML, unescaped:'
-      : 'Results are inserted with textContent, so markup is shown as plain text, never executed:';
-    document.getElementById('csrfHint').textContent = isVuln
-      ? 'No token is required on this action — any request that reaches it is trusted, no matter where it came from:'
-      : 'A per-session token is required and validated before the change is applied:';
-    document.getElementById('csrfRequestPreview').textContent = isVuln
-      ? 'POST /change-email   (no csrf_token field present)'
-      : `POST /change-email\ncsrf_token: ${csrfToken}`;
-    document.getElementById('cookieHint').textContent = isVuln
-      ? 'The session cookie is set with no HttpOnly / Secure / SameSite flags, so any script on this page can read it freely:'
-      : 'The session cookie would be set server-side with HttpOnly (plus Secure and SameSite), making it invisible to JavaScript entirely:';
-
-    // Reset per-section demo state on every mode switch
-    currentEmail = DEFAULT_EMAIL;
-    document.getElementById('currentEmailDisplay').textContent = currentEmail;
-    document.getElementById('csrfResult').style.display = 'none';
-    document.getElementById('cookieResult').style.display = 'none';
-    document.cookie = SESSION_COOKIE_NAME + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-
-    document.getElementById('loginResult').style.display = 'none';
-    document.getElementById('searchResult').textContent = 'Results for: ';
-    updatePreview();
-  }
-
-  function updatePreview() {
-    const box = document.getElementById('queryPreview');
-    if (mode === 'vulnerable') {
-      const u = document.getElementById('u').value;
-      const p = document.getElementById('p').value;
-      box.textContent = "SELECT * FROM users WHERE username = '" + u + "' AND password = '" + p + "'";
-      box.style.display = 'block';
-    } else {
-      box.textContent = 'lookup(username, password) — values compared directly, no string built';
-      box.style.display = 'block';
-    }
-  }
-
-  function handleLogin() {
-    const u = document.getElementById('u').value;
-    const p = document.getElementById('p').value;
-    const box = document.getElementById('loginResult');
-    box.style.display = 'block';
-
-    let matched, extra = '';
-    if (mode === 'vulnerable') {
-      const r = vulnerableLogin(u, p, users);
-      matched = r.matched;
-      if (matched) extra = `\nQuery actually evaluated (after any SQL comment truncation):\n${r.cleaned}`;
-    } else {
-      matched = users.find((row) => row.username === u && row.password === p);
-    }
-
-    if (matched) {
-      box.className = 'result-box success';
-      box.textContent = `Login succeeded — signed in as "${matched.username}"${mode === 'vulnerable' ? ', no valid password required.' : '.'}${extra}`;
-    } else {
-      box.className = 'result-box fail';
-      box.textContent = 'Invalid credentials.';
-    }
-  }
-
-  function handleSearch() {
-    const q = document.getElementById('q').value;
-    const box = document.getElementById('searchResult');
-    if (mode === 'vulnerable') {
-      box.innerHTML = 'Results for: ' + q; // VULNERABLE: unescaped
-    } else {
-      box.textContent = 'Results for: ' + q; // FIX: safe by construction
-    }
-  }
-
-  function handleUpdateEmail(e) {
-    if (e) e.preventDefault();
-    const email = document.getElementById('newEmail').value.trim() || DEFAULT_EMAIL;
-    currentEmail = email;
-    document.getElementById('currentEmailDisplay').textContent = currentEmail;
-    const box = document.getElementById('csrfResult');
-    box.style.display = 'block';
-    box.className = 'result-box success';
-    box.textContent = mode === 'vulnerable'
-      ? `Email updated to "${email}". This request had no token to check, but it went through anyway.`
-      : `Email updated to "${email}", because this in-app form included a valid csrf_token.`;
-  }
-
-  function handleForgedRequest() {
-    const box = document.getElementById('csrfResult');
-    box.style.display = 'block';
-    const forgedEmail = 'attacker@evil-site.example';
-    // Simulates a hidden auto-submitting form on another site, posting to
-    // this same action. It has no way to know a valid session token.
-    if (mode === 'vulnerable') {
-      currentEmail = forgedEmail;
-      document.getElementById('currentEmailDisplay').textContent = currentEmail;
-      box.className = 'result-box success';
-      box.textContent = `Forged request succeeded — email silently changed to "${forgedEmail}" without the real user filling out any form themselves.`;
-    } else {
-      box.className = 'result-box fail';
-      box.textContent = 'Forged request rejected — it carried no valid csrf_token, so the server refused the change.';
-    }
-  }
-
-  function getCookie(name) {
-    const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
-    return match ? decodeURIComponent(match[1]) : null;
-  }
-
-  function handleSetCookie() {
-    const sid = 'sid_' + Math.random().toString(36).slice(2, 10);
-    const box = document.getElementById('cookieResult');
-    box.style.display = 'block';
-    if (mode === 'vulnerable') {
-      // VULNERABLE: cookie set with no HttpOnly/Secure/SameSite flags,
-      // so it's fully readable from JavaScript.
-      document.cookie = SESSION_COOKIE_NAME + '=' + sid + '; path=/';
-      box.className = 'result-box success';
-      box.textContent = 'Session cookie issued and stored via document.cookie — readable by any script running on this page.';
-    } else {
-      // FIX (simulated): a real HttpOnly cookie is set by the server and
-      // never appears in document.cookie at all, so nothing is set here.
-      box.className = 'result-box success';
-      box.textContent = 'Session cookie issued server-side with HttpOnly, Secure, and SameSite set — it never becomes visible to document.cookie in the first place.';
-    }
-  }
-
-  function handleReadCookie() {
-    const box = document.getElementById('cookieResult');
-    box.style.display = 'block';
-    const val = getCookie(SESSION_COOKIE_NAME);
-    if (mode === 'vulnerable') {
-      box.className = 'result-box success';
-      box.textContent = val
-        ? `document.cookie → "${SESSION_COOKIE_NAME}=${val}"\nAn attacker's injected script (e.g. via the XSS above) could read and exfiltrate this directly.`
-        : 'No cookie set yet — click "Simulate login" first.';
-    } else {
-      box.className = 'result-box fail';
-      box.textContent = `document.cookie → "${val ?? ''}"\nNothing readable here — a real HttpOnly cookie is never exposed to JavaScript, so an XSS payload on this page could not steal it.`;
-    }
-  }
-</script>
-
 </body>
 </html>

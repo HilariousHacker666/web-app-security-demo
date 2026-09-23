@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paw & Pour — Staff Console (Vulnerable)</title>
+<link rel="stylesheet" href="pet-cafe.css">
+</head>
+<body class="mode-vulnerable">
+
+<nav class="topnav">
+  <div class="brand">
+    <span class="mark">🐾</span>
+    <div>
+      <h1>Paw & Pour</h1>
+      <div class="sub">Staff console</div>
+    </div>
+  </div>
+  <div class="nav-right" id="navRight">
+    <a class="nav-link" href="#login">Login</a>
+    <a class="nav-link" href="#search">Search</a>
+    <a class="nav-link" href="#gallery">Pets</a>
+    <a class="nav-link" href="#menu">Menu</a>
+    <a class="nav-link" href="#bookings">Bookings</a>
+    <a class="nav-link" href="#settings">Settings</a>
+    <a class="nav-link" href="#session">Session</a>
+    <span class="mode-badge">● Vulnerable build</span>
+    <a class="nav-link" href="patched.html">View patched →</a>
+  </div>
+</nav>
+
+<section class="hero" style="background:none;border:none;padding-bottom:0;">
+  <h2>Good morning — here's what's happening today.</h2>
+  <p class="tagline" id="heroTagline"></p>
+  <div class="info-chips">
+    <span class="chip" id="chipAddress"></span>
+    <span class="chip" id="chipHours"></span>
+    <span class="chip" id="chipPhone"></span>
+  </div>
+</section>
+
+<main>
+  <div id="frameNotice"></div>
+  <div class="banner">
+    This is a training build of the Paw & Pour staff console with known
+    security flaws left in on purpose, running entirely in your browser
+    against mock data. Nothing here touches a real server or database.
+  </div>
+
+  <section id="login">
+    <h3><span class="status-dot"></span> Staff login <span style="color:var(--muted);font-weight:400;font-size:0.85rem;">— SQL Injection</span></h3>
+    <p class="section-sub">Mock account: <code>staff_manager</code> / <code>Marigold@2024</code> — try <code>staff_manager' OR '1'='1</code> as the username</p>
+    <form id="loginForm">
+      <label for="u">Username</label>
+      <input type="text" id="u" autocomplete="off">
+      <label for="p">Password</label>
+      <input type="text" id="p" autocomplete="off">
+      <button class="action" type="submit">Log in</button>
+    </form>
+    <div class="hint">Live query, built by string concatenation (exactly like the real backend code would):</div>
+    <div class="code-box" id="queryPreview"></div>
+    <div class="result-box" id="loginResult" style="display:none;"></div>
+  </section>
+
+  <section id="search">
+    <h3><span class="status-dot"></span> Find a pet or customer <span style="color:var(--muted);font-weight:400;font-size:0.85rem;">— XSS</span></h3>
+    <p class="section-sub">Try: <code>&lt;img src=x onerror="alert('XSS executed!')"&gt;</code></p>
+    <label for="q">Search</label>
+    <input type="text" id="q" autocomplete="off" placeholder="pet name, customer name...">
+    <button class="action" type="button" id="searchBtn">Search</button>
+    <div class="hint">Results are inserted with innerHTML, unescaped:</div>
+    <div class="result-box" id="searchResult">Results for: </div>
+  </section>
+
+  <section id="gallery">
+    <h3><span class="status-dot" style="background:var(--sage);"></span> Today's pets</h3>
+    <p class="section-sub">Who's in the café right now.</p>
+    <div class="pet-grid" id="petGrid"></div>
+  </section>
+
+  <section id="menu">
+    <h3><span class="status-dot" style="background:var(--sage);"></span> Café menu</h3>
+    <p class="section-sub">Today's board.</p>
+    <div class="menu-groups" id="menuGroups"></div>
+  </section>
+
+  <section id="bookings">
+    <h3><span class="status-dot" style="background:var(--sage);"></span> Today's bookings</h3>
+    <table class="bookings-table">
+      <thead><tr><th>Time</th><th>Name</th><th>Details</th><th>Spot</th></tr></thead>
+      <tbody id="bookingsBody"></tbody>
+    </table>
+  </section>
+
+  <section id="settings">
+    <h3><span class="status-dot"></span> Notification settings <span style="color:var(--muted);font-weight:400;font-size:0.85rem;">— CSRF</span></h3>
+    <p class="section-sub">Current booking-reminder email: <strong id="currentEmailDisplay"></strong></p>
+    <form id="csrfForm">
+      <label for="newEmail">New reminder email (as if you typed it yourself)</label>
+      <input type="text" id="newEmail" autocomplete="off" placeholder="you@example.com">
+      <button class="action" type="submit">Update email</button>
+    </form>
+    <div class="hint" id="csrfHint"></div>
+    <div class="code-box" id="csrfRequestPreview"></div>
+    <button class="action secondary" type="button" id="forgeBtn" style="margin-top:0.75rem;">Simulate a forged request from another site</button>
+    <div class="result-box" id="csrfResult" style="display:none;"></div>
+  </section>
+
+  <section id="session">
+    <h3><span class="status-dot"></span> Session cookie <span style="color:var(--muted);font-weight:400;font-size:0.85rem;">— insecure cookie</span></h3>
+    <p class="section-sub">Whether a script on this page — standing in for an XSS payload — can read the login session cookie.</p>
+    <button class="action" type="button" id="setCookieBtn">Simulate login (issue session cookie)</button>
+    <button class="action secondary" type="button" id="readCookieBtn" style="margin-left:0.5rem;">Read cookie via JavaScript</button>
+    <div class="hint" id="cookieHint"></div>
+    <div class="result-box" id="cookieResult" style="display:none;"></div>
+  </section>
+
+  <section id="framing">
+    <h3><span class="status-dot"></span> Clickjacking</h3>
+    <p class="section-sub">
+      This page sets no framing protection, so it can be loaded inside an
+      <code>&lt;iframe&gt;</code> on another site and used for a UI-redress attack.
+    </p>
+    <a href="clickjack-test.html"><button class="action secondary" type="button">Open the framing test →</button></a>
+  </section>
+
+  <footer>
+    <a href="index.html">← Back to demo index</a> ·
+    <a href="patched.html">See the patched version →</a><br><br>
+    See <a href="https://github.com/HilariousHacker666/web-app-security-demo/blob/main/SECURITY_REPORT.md" target="_blank" rel="noopener">SECURITY_REPORT.md</a> and
+    <a href="https://github.com/HilariousHacker666/web-app-security-demo/blob/main/ATTACK_DEMO_GUIDE.md" target="_blank" rel="noopener">ATTACK_DEMO_GUIDE.md</a> for the full report and presenter script.
+  </footer>
+</main>
+
+<script src="pet-cafe-data.js"></script>
+<script src="sql-eval.js"></script>
+<script>
+  const isFramed = window.top !== window.self;
+  const csrfToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const DEFAULT_EMAIL = 'priya@pawandpour.example';
+  let currentEmail = DEFAULT_EMAIL;
+  const SESSION_COOKIE_NAME = 'pawpour_session';
+
+  if (isFramed) {
+    document.getElementById('navRight').style.display = 'none';
+  }
+
+  renderStaticContent();
+
+  document.getElementById('u').addEventListener('input', updatePreview);
+  document.getElementById('p').addEventListener('input', updatePreview);
+  updatePreview();
+
+  document.getElementById('csrfRequestPreview').textContent = 'POST /change-email   (no csrf_token field present)';
+
+  document.getElementById('loginForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    handleLogin();
+  });
+  document.getElementById('searchBtn').addEventListener('click', handleSearch);
+  document.getElementById('csrfForm').addEventListener('submit', handleUpdateEmail);
+  document.getElementById('forgeBtn').addEventListener('click', handleForgedRequest);
+  document.getElementById('setCookieBtn').addEventListener('click', handleSetCookie);
+  document.getElementById('readCookieBtn').addEventListener('click', handleReadCookie);
+
+  function updatePreview() {
+    const u = document.getElementById('u').value;
+    const p = document.getElementById('p').value;
+    document.getElementById('queryPreview').textContent =
+      "SELECT * FROM staff WHERE username = '" + u + "' AND password = '" + p + "'";
+  }
+
+  function handleLogin() {
+    const u = document.getElementById('u').value;
+    const p = document.getElementById('p').value;
+    const box = document.getElementById('loginResult');
+    box.style.display = 'block';
+    const r = vulnerableLogin(u, p, STAFF);
+    if (r.matched) {
+      box.className = 'result-box success';
+      box.textContent = `Login succeeded — signed in as "${r.matched.username}" (${r.matched.name}), no valid password required.\nQuery actually evaluated (after any SQL comment truncation):\n${r.cleaned}`;
+    } else {
+      box.className = 'result-box fail';
+      box.textContent = 'Invalid credentials.';
+    }
+  }
+
+  function handleSearch() {
+    const q = document.getElementById('q').value;
+    document.getElementById('searchResult').innerHTML = 'Results for: ' + q; // VULNERABLE: unescaped
+  }
+
+  function handleUpdateEmail(e) {
+    e.preventDefault();
+    const email = document.getElementById('newEmail').value.trim() || DEFAULT_EMAIL;
+    currentEmail = email;
+    document.getElementById('currentEmailDisplay').textContent = currentEmail;
+    const box = document.getElementById('csrfResult');
+    box.style.display = 'block';
+    box.className = 'result-box success';
+    box.textContent = `Reminder email updated to "${email}". This request had no token to check, but it went through anyway.`;
+  }
+
+  function handleForgedRequest() {
+    const box = document.getElementById('csrfResult');
+    box.style.display = 'block';
+    const forgedEmail = 'attacker@evil-site.example';
+    currentEmail = forgedEmail;
+    document.getElementById('currentEmailDisplay').textContent = currentEmail;
+    box.className = 'result-box success';
+    box.textContent = `Forged request succeeded — reminder email silently changed to "${forgedEmail}" without the real staff member filling out any form themselves.`;
+  }
+
+  function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  function handleSetCookie() {
+    const sid = 'sid_' + Math.random().toString(36).slice(2, 10);
+    document.cookie = SESSION_COOKIE_NAME + '=' + sid + '; path=/';
+    const box = document.getElementById('cookieResult');
+    box.style.display = 'block';
+    box.className = 'result-box success';
+    box.textContent = 'Session cookie issued and stored via document.cookie — readable by any script running on this page.';
+  }
+
+  function handleReadCookie() {
+    const box = document.getElementById('cookieResult');
+    box.style.display = 'block';
+    const val = getCookie(SESSION_COOKIE_NAME);
+    box.className = 'result-box success';
+    box.textContent = val
+      ? `document.cookie → "${SESSION_COOKIE_NAME}=${val}"\nAn attacker's injected script (e.g. via the search XSS above) could read and exfiltrate this directly.`
+      : 'No cookie set yet — click "Simulate login" first.';
+  }
+</script>
+
+</body>
+</html>

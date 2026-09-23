@@ -4,17 +4,18 @@
 
 This repository has two things:
 
-1. **`docs/`** — a single-page static application, safe to host
-   publicly (no real backend or database — everything runs in the
-   browser against mock data). It has a Vulnerable/Patched toggle that
-   switches the login, search, and framing behavior between the
-   insecure and fixed versions, plus an embedded clickjacking
-   self-test. This is what's deployed via GitHub Pages above, and
-   what you'd use for a live, click-through demo with your team.
-2. **`vulnerable/`** and **`patched/`** — the real two versions of the
-   same tiny Flask app the static demo is modeled on, each with
+1. **`docs/`** — "Paw & Pour," a fictional pet café's staff-console
+   app, built as two separate static pages: `vulnerable.html` (all
+   five flaws live) and `patched.html` (same UI and mock data, each
+   flaw fixed), plus `clickjack-test.html` to see the framing
+   difference side by side. Safe to host publicly — no real backend or
+   database, everything runs in the browser against mock data. This is
+   what's deployed via GitHub Pages above, and what you'd use for a
+   live, click-through demo with your team.
+2. **`vulnerable/`** and **`patched/`** — the real two versions of a
+   small Flask app the static demo is modeled on, each with
    `VULNERABILITY:` / `FIX:` comments in the code, for anyone who wants
-   to see (or run locally) the actual server-side logic.
+   to see (or run locally) actual server-side logic.
 
 Read **SECURITY_REPORT.md** for a plain-English write-up of every
 vulnerability and its fix, and **ATTACK_DEMO_GUIDE.md** for a

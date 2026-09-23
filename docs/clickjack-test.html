@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Framing test — Paw & Pour Staff Console</title>
+<link rel="stylesheet" href="pet-cafe.css">
+<style>
+  main.test-main { max-width: 1000px; padding-top: 1.5rem; }
+  .back-link { display: inline-block; margin: 1.2rem 1.5rem 0; font-size: 0.88rem; color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+  <a class="back-link" href="index.html">← Back to demo index</a>
+  <main class="test-main">
+    <h2 style="font-family:var(--serif);font-size:1.4rem;margin:0.5rem 0 0.4rem;">Clickjacking test — both consoles loaded in an iframe</h2>
+    <p class="section-sub" style="max-width:70ch;">
+      Both staff console pages are embedded below inside an
+      <code>&lt;iframe&gt;</code>, exactly like an attacker's page would
+      embed them. The vulnerable console loads normally — an attacker
+      could overlay invisible buttons on top of it to trick clicks. The
+      patched console detects that it's framed and blocks its own content
+      instead.
+    </p>
+    <div class="frame-grid">
+      <div class="frame-col">
+        <h4><span class="dot r"></span> Vulnerable — loads normally</h4>
+        <div class="frame-wrap"><iframe class="demo-frame" src="vulnerable.html" title="vulnerable console in frame"></iframe></div>
+      </div>
+      <div class="frame-col">
+        <h4><span class="dot g"></span> Patched — refuses to render</h4>
+        <div class="frame-wrap"><iframe class="demo-frame" src="patched.html" title="patched console in frame"></iframe></div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
